@@ -1,6 +1,6 @@
  
  # by R. Chandra
- #https://github.com/rohitash-chandra/Bayesian_logisticregression
+#https://github.com/rohitash-chandra/Bayesianlogisticreg_multioutputs
 
 import numpy as np
 import random
@@ -37,10 +37,7 @@ class logistic_regression:
 		if self.use_sigmoid == True:
 			y =  1 / (1 + np.exp(z_vec)) # sigmoid/logistic 
 		else:  
-			#y =  np.exp(z_vec) / np.sum(np.exp(z_vec))  # softmax  would give an error for large input values 
-			b = np.exp(z_vec- max(z_vec)) #fixed by trick: https://stackoverflow.com/questions/54880369/implementation-of-softmax-function-returns-nan-for-high-inputs
-			c = np.sum(b) 
-			y = b/c
+			y =   z_vec
 		return y
 
 	def squared_error(self, prediction, actual):
@@ -51,7 +48,7 @@ class logistic_regression:
 		z_vec = x_vec.dot(self.w) - self.b 
 		output = self.activation_func(z_vec) # Output 
 		return output
-
+ 
 
 	def softmax_grad(self, softmax):
 		# Reshape the 1-d softmax to 2-d so that np.dot will do the matrix multiplication
@@ -62,25 +59,20 @@ class logistic_regression:
 	def gradient(self, x_vec, output, actual):   
 		if self.use_sigmoid == True :
 			out_delta =   (output - actual)*(output*(1-output)) 
-		else: # for softmax
-			error = output - actual
-			out_delta =  np.dot(x_vec.T, error)  # look for softmax out delta https://stats.stackexchange.com/questions/79454/softmax-layer-in-a-neural-network
+		else: # for linear activation
+			out_delta =   output - actual
 		return out_delta 
 
 
 
 	def update(self, x_vec, output, actual): # implementation using for loops 
 
-		if self.use_sigmoid == True :
-			for x in range(0, self.num_features):
-				for y in range(0, self.num_outputs):
-					self.w[x,y] += self.learn_rate * self.out_delta[y] * x_vec[x] 
+		for x in range(0, self.num_features):
 			for y in range(0, self.num_outputs):
-				self.b += -1 * self.learn_rate * self.out_delta[y]
-		else:
-			self.b+= -1 * self.learn_rate *  (output - actual)
-			#self.w += self.learn_rate * self.out_delta  
-
+				self.w[x,y] += self.learn_rate * self.out_delta[y] * x_vec[x] 
+		for y in range(0, self.num_outputs):
+			self.b += -1 * self.learn_rate * self.out_delta[y]
+	 
 
 
 
@@ -97,11 +89,9 @@ class logistic_regression:
 			pred_binary = np.zeros(prediction.shape[0])
 			sum_sqer += self.squared_error(prediction, actual)
 			index= np.argmax(prediction)
-			pred_binary[index] = 1
+			pred_binary[index] = 1 # i=for softmax 
 
-			#pred_binary = np.where(prediction > (1 - tolerance), 1, 0)
-
-			#print(s, actual, prediction, pred_binary, sum_sqer, np.sum(actual-pred_binary), ' s, actual, prediction, sum_sqerr')
+			#pred_binary = np.where(prediction > (1 - tolerance), 1, 0) # for sigmoid in case of classification
 
 			if( (actual==pred_binary).all()):
 				class_perf =  class_perf +1   
@@ -124,20 +114,14 @@ class logistic_regression:
 				sum_sqer = 0
 				for s in range(0, self.num_train): 
 					if shuffle ==True:
-						i = random.randint(0, self.num_train-1)
-
-
+						i = random.randint(0, self.num_train-1) 
 					input_instance  =  self.train_data[i,0:self.num_features]  
 					actual  = self.train_data[i,self.num_features:]  
 					prediction = self.predict(input_instance) 
 					sum_sqer += self.squared_error(prediction, actual)
-					self.out_delta = self.gradient( input_instance, prediction, actual)    # major difference when compared to GD
-					#print(input_instance, prediction, actual, s, sum_sqer)
-					self.update(input_instance, prediction, actual)
-
-				#rmse_train, train_perc = self.test_model(self.train_data, 0.3) 
-
-				print(epoch, sum_sqer)
+					self.out_delta = self.gradient( input_instance, prediction, actual)    # major difference when compared to GD 
+					self.update(input_instance, prediction, actual) 
+ 
 				epoch=epoch+1  
 
 			rmse_train, train_perc = self.test_model(self.train_data, 0.3) 
@@ -449,84 +433,12 @@ def main():
 
 	
 
-	for problem in range(3, 4): 
+	for problem in range(2, 3): 
 
-
-		if problem == -2:
-
-			dataset_onehot = [[0,0,0], # xor gate  classification with one-hot encoding 
-							[0,1,1],
-							[1,0,1],
-							[1,1,0]]
-
-
-			traindata = np.asarray(dataset_onehot) # convert list data to numpy
-			testdata = traindata
-			features = 2
-			output = 1
-			activation = True  # true for sigmoid, false for softmax
-  
-
-
-		elif problem == -1:
-
-			dataset_onehot = [[0,0,0, 1], # xor gate  classification with one-hot encoding 
-							[0,1,1, 0],
-							[1,0,1, 0],
-							[1,1,0, 1]]
-
-
-			traindata = np.asarray(dataset_onehot) # convert list data to numpy
-			testdata = traindata
-			features = 2
-			output = 2
-			activation = True  # true for sigmoid, false for softmax
-  
-
-		elif problem == 0:
-
-			dataset_onehot = [[2.7810836,2.550537003,0, 1], # binary classification with one-hot encoding 
-							[1.465489372,2.362125076,0, 1],
-							[3.396561688,4.400293529,0, 1],
-							[1.38807019,1.850220317,0, 1],
-							[3.06407232,3.005305973,0, 1],
-							[7.627531214,2.759262235,1, 0],
-							[5.332441248,2.088626775,1, 0],
-							[6.922596716,1.77106367,1, 0],
-							[8.675418651,-0.242068655,1, 0],
-							[7.673756466,3.508563011,1, 0]]
-
-
-			traindata = np.asarray(dataset_onehot) # convert list data to numpy
-			testdata = traindata
-			features = 2
-			output = 2
-			activation = False # true for sigmoid, false for softmax
-
-
-		elif problem == 1:
-
-			dataset_onehot = [[2.7810836,2.550537003,0], # binary classification with one-hot encoding 
-							[1.465489372,2.362125076,0],
-							[3.396561688,4.400293529,0],
-							[1.38807019,1.850220317,0],
-							[3.06407232,3.005305973,0],
-							[7.627531214,2.759262235,1],
-							[5.332441248,2.088626775,1],
-							[6.922596716,1.77106367,1],
-							[8.675418651,-0.242068655,1],
-							[7.673756466,3.508563011,1]]
-
-
-			traindata = np.asarray(dataset_onehot) # convert list data to numpy
-			testdata = traindata
-			features = 2
-			output = 1
-			activation = True # true for sigmoid, false for softmax
-  
+ 
   
  
-		if problem == 2: #Single step ahead prediction
+		if problem == 1: #Single step ahead prediction
 			traindata = np.loadtxt("data/Sunspot/train.txt")
 			testdata = np.loadtxt("data/Sunspot/test.txt")  # 
 			features = 4  #
@@ -534,7 +446,7 @@ def main():
 			activation = True # true for sigmoid, false for softmax
 
 
-		if problem == 3: #Multi-step ahead prediction. #MMM stock market - 5 steps ahead predicton for closing stock price https://au.finance.yahoo.com/quote/mmm/
+		if problem == 2: #Multi-step ahead prediction. #MMM stock market - 5 steps ahead predicton for closing stock price https://au.finance.yahoo.com/quote/mmm/
 			traindata = np.loadtxt("data/Stockmarket/train.txt")
 			testdata = np.loadtxt("data/Stockmarket/test.txt")  # 
 			features = 5  #
@@ -550,11 +462,11 @@ def main():
 		topology = [features, output]
 
 
-		model = logistic_regression(100 ,   traindata, testdata, topology[0], 0.1, activation) 
+		model = logistic_regression(1000,   traindata, testdata, topology[0], 0.1, activation) 
 
 		train_perc, test_perc, rmse_train, rmse_test = model.SGD()
 
-		print(train_perc, test_perc, rmse_train, rmse_test, ' train_perc, test_perc, rmse_train, rmse_test **** **** ')
+		print(train_perc, test_perc, rmse_train, rmse_test, ' train_perc, test_perc, rmse_train, rmse_test using SGD ')
 
 
 
@@ -566,7 +478,7 @@ def main():
 		MinCriteria = 0.005  # stop when RMSE reaches MinCriteria ( problem dependent)
 
 
-		numSamples = 2# need to decide yourself
+		numSamples = 10000# need to decide yourself
 
 		mcmc = MCMC(numSamples, traindata, testdata, topology, activation)  # declare class
 
