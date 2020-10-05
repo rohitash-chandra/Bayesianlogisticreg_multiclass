@@ -48,13 +48,6 @@ class logistic_regression:
 		z_vec = x_vec.dot(self.w) - self.b 
 		output = self.activation_func(z_vec) # Output 
 		return output
- 
-
-	def softmax_grad(self, softmax):
-		# Reshape the 1-d softmax to 2-d so that np.dot will do the matrix multiplication
-		#https://medium.com/@aerinykim/how-to-implement-the-softmax-derivative-independently-from-any-loss-function-ae6d44363a9d
-		s = softmax.reshape(-1,1)
-		return np.diagflat(s) - np.dot(s, s.T)
 
 	def gradient(self, x_vec, output, actual):   
 		if self.use_sigmoid == True :
@@ -63,18 +56,13 @@ class logistic_regression:
 			out_delta =   output - actual
 		return out_delta 
 
-
-
 	def update(self, x_vec, output, actual): # implementation using for loops 
-
 		for x in range(0, self.num_features):
 			for y in range(0, self.num_outputs):
 				self.w[x,y] += self.learn_rate * self.out_delta[y] * x_vec[x] 
 		for y in range(0, self.num_outputs):
 			self.b += -1 * self.learn_rate * self.out_delta[y]
 	 
-
-
 
 	def test_model(self, data, tolerance):  
 
@@ -89,47 +77,43 @@ class logistic_regression:
 			pred_binary = np.zeros(prediction.shape[0])
 			sum_sqer += self.squared_error(prediction, actual)
 			index= np.argmax(prediction)
-			pred_binary[index] = 1 # i=for softmax 
-
+			pred_binary[index] = 1 # i=for softmax  
 			#pred_binary = np.where(prediction > (1 - tolerance), 1, 0) # for sigmoid in case of classification
 
 			if( (actual==pred_binary).all()):
 				class_perf =  class_perf +1   
 
 		rmse = np.sqrt(sum_sqer/num_instances)
-
 		percentage_correct = float(class_perf/num_instances) * 100 
-
 		print(percentage_correct, rmse,  ' class_perf, rmse')  
 
 		return ( rmse, percentage_correct)
 
  
 	def SGD(self):   
-		
-			epoch = 0 
-			shuffle = True
+		epoch = 0 
+		shuffle = True
 
-			while  epoch < self.max_epoch:
-				sum_sqer = 0
-				for s in range(0, self.num_train): 
-					if shuffle ==True:
-						i = random.randint(0, self.num_train-1) 
-					input_instance  =  self.train_data[i,0:self.num_features]  
-					actual  = self.train_data[i,self.num_features:]  
-					prediction = self.predict(input_instance) 
-					sum_sqer += self.squared_error(prediction, actual)
-					self.out_delta = self.gradient( input_instance, prediction, actual)    # major difference when compared to GD 
-					self.update(input_instance, prediction, actual) 
- 
-				epoch=epoch+1  
+		while  epoch < self.max_epoch:
+			sum_sqer = 0
+			for s in range(0, self.num_train): 
+				if shuffle ==True:
+					i = random.randint(0, self.num_train-1) 
+				input_instance  =  self.train_data[i,0:self.num_features]  
+				actual  = self.train_data[i,self.num_features:]  
+				prediction = self.predict(input_instance) 
+				sum_sqer += self.squared_error(prediction, actual)
+				self.out_delta = self.gradient( input_instance, prediction, actual)    # major difference when compared to GD 
+				self.update(input_instance, prediction, actual) 
 
-			rmse_train, train_perc = self.test_model(self.train_data, 0.3) 
-			rmse_test =0
-			test_perc =0
-			rmse_test, test_perc = self.test_model(self.test_data, 0.3)
-  
-			return (train_perc, test_perc, rmse_train, rmse_test) 
+			epoch=epoch+1  
+
+		rmse_train, train_perc = self.test_model(self.train_data, 0.3) 
+		rmse_test =0
+		test_perc =0
+		rmse_test, test_perc = self.test_model(self.test_data, 0.3)
+
+		return (train_perc, test_perc, rmse_train, rmse_test) 
 				
 #------------ new functions added for MCMC below
 	 
@@ -347,7 +331,7 @@ class MCMC:
 
 		print(accept_ratio, '% was accepted')
 
-		burnin = 0.75 * samples  # use post burn in samples
+		burnin = 0.25 * samples  # use post burn in samples
 
 		pos_w = pos_w[int(burnin):, ]
 		pos_tau = pos_tau[int(burnin):, ] 
@@ -462,23 +446,20 @@ def main():
 		topology = [features, output]
 
 
-		model = logistic_regression(1000,   traindata, testdata, topology[0], 0.1, activation) 
+		model = logistic_regression(500,   traindata, testdata, topology[0], 0.1, activation) 
 
 		train_perc, test_perc, rmse_train, rmse_test = model.SGD()
 
 		print(train_perc, test_perc, rmse_train, rmse_test, ' train_perc, test_perc, rmse_train, rmse_test using SGD ')
 
 
-
-
-
-
+ 
 		#--------------------------------------------------
 
 		MinCriteria = 0.005  # stop when RMSE reaches MinCriteria ( problem dependent)
 
 
-		numSamples = 10000# need to decide yourself
+		numSamples = 5000# need to decide yourself
 
 		mcmc = MCMC(numSamples, traindata, testdata, topology, activation)  # declare class
 
@@ -550,9 +531,10 @@ def main():
 		if not os.path.exists(folder):
 			os.makedirs(folder)
 
-		for i in range(pos_w.shape[1]):
-			histogram_trace(pos_w[:,i], folder+ '/'+ str(i))
+		#for i in range(pos_w.shape[1]):
 
+		for i in range(5):
+			histogram_trace(pos_w[:,i], folder+ '/'+ str(i))
 
 if __name__ == "__main__": main()
 
